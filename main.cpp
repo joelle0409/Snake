@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstdlib>
 #include "console_renderer.h"
+#include <fstream>
 
 using namespace std;
 
@@ -45,6 +46,8 @@ struct GameState
 
 	int width = 30;
 	int height = 30;
+
+	std::vector<std::string> level;
 };
 
 static LevelId ParseLevel(int argc, char** argv)
@@ -76,40 +79,43 @@ static bool IsWall(const GameState& game, int x, int y)
 	return false;
 }
 
-
-static void BuildLevel(GameState& game, LevelId level)
+static void LoadLevel(GameState& game, const std::string& filename)
 {
-	// remove any old walls first when restarting or changing level.
-	// cx, cy means the middle of the map. 
+	game.level.clear();
 	game.walls.clear();
 
-	int cx = game.width / 2;
-	int cy = game.height / 2;
+	std::ifstream file(filename);
+	std::string line;
 
-	// if the chosen level is level2, the build level2 otherwise, level3.
-	if (level == LevelId::L2)
+	while (std::getline(file, line))
 	{
-		for (int y = cy - 4; y <= cy + 4; y++)
-			game.walls.push_back({ cx, y }); // for each y values, add a wall at x = center.
+		game.level.push_back(line);
 	}
-	else if (level == LevelId::L3)
+
+	game.height = (int)game.level.size();
+	game.width = (int)game.level[0].size();
+
+	for (int y = 0; y < game.height; y++)
 	{
-		// forming the T
-		// halfBar = 6, controls half the width of the top T
-		// topY = cy - 4, moves top T a bit above the middle.
-
-		int halfBar = 6;
-		int topY = cy - 4;
-
-		for (int x = cx - halfBar; x <= cx + halfBar; x++) // draws the top horizontal of T
+		for (int x = 0; x < game.width; x++)
 		{
-			game.walls.push_back({ x, topY });
-		}
-		for (int y = topY; y <= cy + 6; y++) // draws the vertical of T
-		{
-			game.walls.push_back({ cx, y });
+			char tile = game.level[y][x];
+
+			if (tile == '#')
+				game.walls.push_back({ x, y });
 		}
 	}
+
+}
+
+
+static std::string GetLevelFilename(LevelId level)
+{
+	if (level == LevelId::L1) return "level1.txt";
+	if (level == LevelId::L2) return "level2.txt";
+	if (level == LevelId::L3) return "level3.txt";
+
+	return "level1.txt";
 }
 
 
@@ -189,7 +195,7 @@ static void ResetGame(GameState& game, LevelId chosenLevel)
 	game.score = 0;
 	game.gameOver = false;
 
-	BuildLevel(game, chosenLevel);
+	LoadLevel(game, GetLevelFilename(chosenLevel));
 	RespawnFood(game);
 }
 
@@ -331,7 +337,7 @@ int main(int argc, char** argv)
 
 			if (input.quit)
 			{
-				deleteCustomConsole;
+				deleteCustomConsole();
 				return 0;
 			}
 

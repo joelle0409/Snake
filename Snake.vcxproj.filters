@@ -24,4 +24,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="level1.txt" />
+    <CopyFileToFolders Include="level2.txt" />
+    <CopyFileToFolders Include="level3.txt" />
+  </ItemGroup>
 </Project>
