@@ -81,6 +81,8 @@ static bool IsWall(const GameState& game, int x, int y)
 
 static void LoadLevel(GameState& game, const std::string& filename)
 {
+	// reads map from text file. 
+
 	game.level.clear();
 	game.walls.clear();
 
@@ -106,6 +108,40 @@ static void LoadLevel(GameState& game, const std::string& filename)
 		}
 	}
 
+}
+
+int LoadHighScore(const std::string& filename)
+{
+	// reads highscore from file
+
+	std::ifstream file(filename); // reading from file
+
+	int score = 0;
+
+	if (file.is_open()) // checks if the file was opened
+		file >> score;  // reads the number from file into variable. if the file says 17 then: score = 17.
+
+	return score;
+}
+
+void SaveHighScore(const std::string& filename, int score)
+{
+	// writes highscore to file
+
+	std::ofstream file(filename); // writes to file
+
+	if (file.is_open())
+		file << score; // if the score = 17, then the file becomes 17.
+}
+
+ 
+static std::string GetHighScoreFilename(LevelId level)
+{
+	if (level == LevelId::L1) return "highscore_level1.txt";
+	if (level == LevelId::L2) return "highscore_level2.txt";
+	if (level == LevelId::L3) return "highscore_level3.txt";
+
+	return "highscore_level1.txt";
 }
 
 
@@ -308,10 +344,11 @@ static void RenderGame(const GameState& game)
 	renderBuffer();
 }
 
-static void ShowGameOverScreen(const GameState& game)
+static void ShowGameOverScreen(const GameState& game, int highScore)
 {
 	clearBuffer();
 	drawString(1, 1, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
+	drawString(1, 2, (std::string("High score: ") + std::to_string(highScore)).c_str());
 
 	// line pos
 	drawString(10, 10, "GAME OVER");
@@ -319,6 +356,10 @@ static void ShowGameOverScreen(const GameState& game)
 	drawString(10, 13, "PRESS R to restart");
 	renderBuffer();
 }
+
+
+
+
 
 int main(int argc, char** argv)
 {
@@ -350,7 +391,19 @@ int main(int argc, char** argv)
 			Sleep(speed);
 		}
 
-		ShowGameOverScreen(game);
+		std::string highscoreFile = GetHighScoreFilename(chosenLevel);
+
+		int oldHighScore = LoadHighScore(highscoreFile);
+		int finalHighScore = oldHighScore;
+
+		if (game.score > oldHighScore)
+		{
+			SaveHighScore(highscoreFile, game.score);
+			finalHighScore = game.score;
+
+		}
+
+		ShowGameOverScreen(game, finalHighScore);
 
 		while (true)
 		{
@@ -363,5 +416,5 @@ int main(int argc, char** argv)
 			
 			Sleep(10);
 		}
-	};
+	}
 }
