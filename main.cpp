@@ -301,7 +301,7 @@ static void RenderGame(const GameState& game)
 	// Food is going to be * in the game.
 	// get food and score is displayed. 
 	drawTile(game.food.x, game.food.y, '*');
-	drawString(1, 1, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
+	drawString(1, 15, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
 
 	if (game.gameOver)
 		drawString(10, 10, "GAME OVER");
@@ -313,8 +313,8 @@ static void RenderGame(const GameState& game)
 static void ShowGameOverScreen(const GameState& game, int highScore)
 {
 	clearBuffer();
-	drawString(1, 1, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
-	drawString(1, 2, (std::string("High score: ") + std::to_string(highScore)).c_str());
+	drawString(10, 15, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
+	drawString(10, 16, (std::string("High score: ") + std::to_string(highScore)).c_str());
 
 	// line pos
 	drawString(10, 10, "GAME OVER");
