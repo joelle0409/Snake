@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include "console_renderer.h"
 #include <fstream>
+#include "LevelId.h"
+#include "highscore.h"
 
 using namespace std;
 
@@ -24,8 +26,6 @@ struct TickInput
 struct Pos { int x = 0; int y = 0; };
 
 enum class Dir { Up, Down, Left, Right };
-
-enum class LevelId { L1, L2, L3};
 
 struct GameState
 {
@@ -108,40 +108,6 @@ static void LoadLevel(GameState& game, const std::string& filename)
 		}
 	}
 
-}
-
-int LoadHighScore(const std::string& filename)
-{
-	// reads highscore from file
-
-	std::ifstream file(filename); // reading from file
-
-	int score = 0;
-
-	if (file.is_open()) // checks if the file was opened
-		file >> score;  // reads the number from file into variable. if the file says 17 then: score = 17.
-
-	return score;
-}
-
-void SaveHighScore(const std::string& filename, int score)
-{
-	// writes highscore to file
-
-	std::ofstream file(filename); // writes to file
-
-	if (file.is_open())
-		file << score; // if the score = 17, then the file becomes 17.
-}
-
- 
-static std::string GetHighScoreFilename(LevelId level)
-{
-	if (level == LevelId::L1) return "highscore_level1.txt";
-	if (level == LevelId::L2) return "highscore_level2.txt";
-	if (level == LevelId::L3) return "highscore_level3.txt";
-
-	return "highscore_level1.txt";
 }
 
 
@@ -369,24 +335,25 @@ int main(int argc, char** argv)
 
 	while (true)
 	{
-		GameState game;
-		ResetGame(game, chosenLevel);
+		GameState* game = new GameState;
+		ResetGame(*game, chosenLevel);
 
-		while (!game.gameOver)
+		while (!game->gameOver)
 		{
 			TickInput input = ReadInput();
 
 			if (input.quit)
 			{
+				delete game;
 				deleteCustomConsole();
 				return 0;
 			}
 
-			UpdateGame(input, game);
-			RenderGame(game);
+			UpdateGame(input, *game);
+			RenderGame(*game);
 
 			// controls how fast each tick runs
-			int speed = 150 - game.score * 5;
+			int speed = 150 - game->score * 5;
 			if (speed < 60) speed = 60;
 			Sleep(speed);
 		}
@@ -396,23 +363,28 @@ int main(int argc, char** argv)
 		int oldHighScore = LoadHighScore(highscoreFile);
 		int finalHighScore = oldHighScore;
 
-		if (game.score > oldHighScore)
+		if (game->score > oldHighScore)
 		{
-			SaveHighScore(highscoreFile, game.score);
-			finalHighScore = game.score;
+			SaveHighScore(highscoreFile, game->score);
+			finalHighScore = game->score;
 
 		}
 
-		ShowGameOverScreen(game, finalHighScore);
+		ShowGameOverScreen(*game, finalHighScore);
 
 		while (true)
 		{
 			if (getIfEscKeyIsCurrentlyDown()) 
 			{ 
-				deleteCustomConsole(); return 0; 
+				delete game;
+				deleteCustomConsole(); 
+				return 0; 
 			}
-			if (getIfBasicKeyIsCurrentlyDown('R')) 
+			if (getIfBasicKeyIsCurrentlyDown('R'))
+			{
+				delete game;
 				break;
+			}
 			
 			Sleep(10);
 		}

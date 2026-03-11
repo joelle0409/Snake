@@ -127,10 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="highscore.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Codes\console_renderer.h" />
+    <ClInclude Include="highscore.h" />
+    <ClInclude Include="LevelId.h" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="level1.txt" />
