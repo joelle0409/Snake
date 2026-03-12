@@ -25,7 +25,23 @@ struct TickInput
 
 struct Pos { int x = 0; int y = 0; };
 
-enum class Dir { Up, Down, Left, Right };
+enum class Dir 
+{ 
+	Up, 
+	Down, 
+	Left, 
+	Right 
+};
+
+enum class MenuChoice
+{
+	Level1,
+	Level2,
+	Level3,
+	HighScores,
+	Settings,
+	Quit
+};
 
 struct GameState
 {
@@ -313,16 +329,99 @@ static void RenderGame(const GameState& game)
 static void ShowGameOverScreen(const GameState& game, int highScore)
 {
 	clearBuffer();
-	drawString(10, 15, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
-	drawString(10, 16, (std::string("High score: ") + std::to_string(highScore)).c_str());
+	drawString(10, 16, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
+	drawString(10, 17, (std::string("High score: ") + std::to_string(highScore)).c_str());
 
 	// line pos
 	drawString(10, 10, "GAME OVER");
-	drawString(10, 12, "PRESS ESC to exit");
-	drawString(10, 13, "PRESS R to restart");
+	drawString(10, 12, "PRESS R to restart");
+	drawString(10, 13, "PRESS M to Menu");
+	drawString(10, 14, "PRESS ESC to exit");
 	renderBuffer();
 }
 
+static MenuChoice ShowMainMenu(bool fastMode)
+{
+	while (true)
+	{
+		clearBuffer();
+
+		drawString(10, 2, "SNAKE GAME");
+		drawString(6, 5, "1 - Play Level 1");
+		drawString(6, 6, "2 - Play Level 2");
+		drawString(6, 7, "3 - Play Level 3");
+		drawString(6, 9, "H - Show HighScore");
+		drawString(6, 10, "S - settings");
+		drawString(6, 11, "ESC - Quit");
+
+		drawString(6, 14, fastMode ? "Speed mode: FAST" : "Speed mode: NORMAL");
+
+		renderBuffer();
+
+		if (getIfBasicKeyIsCurrentlyDown('1')) return MenuChoice::Level1;
+		if (getIfBasicKeyIsCurrentlyDown('2')) return MenuChoice::Level2;
+		if (getIfBasicKeyIsCurrentlyDown('3')) return MenuChoice::Level3;
+		if (getIfBasicKeyIsCurrentlyDown('H')) return MenuChoice::HighScores;
+		if (getIfBasicKeyIsCurrentlyDown('S')) return MenuChoice::Settings;
+		if (getIfEscKeyIsCurrentlyDown()) return MenuChoice::Quit;
+
+		Sleep(10);
+	}
+}
+
+
+static void ShowHighScoreScreen()
+{
+	int hs1 = LoadHighScore(GetHighScoreFilename(LevelId::L1));
+	int hs2 = LoadHighScore(GetHighScoreFilename(LevelId::L2));
+	int hs3 = LoadHighScore(GetHighScoreFilename(LevelId::L3));
+
+	while (true)
+	{
+		clearBuffer();
+
+		drawString(10, 2, "HIGH SCORES");
+		drawString(6, 5, (std::string("Level 1: ") + std::to_string(hs1)).c_str());
+		drawString(6, 6, (std::string("Level 2: ") + std::to_string(hs2)).c_str());
+		drawString(6, 7, (std::string("Level 3: ") + std::to_string(hs3)).c_str());
+
+		drawString(6, 10, "Press B to go back");
+
+		renderBuffer();
+
+		if (getIfBasicKeyIsCurrentlyDown('B'))
+			break;
+
+		Sleep(10);
+	}
+}
+
+static void ShowSettingsScreen(bool& fastMode)
+{
+	while (true)
+	{
+		clearBuffer();
+
+		drawString(10, 2, "SETTINGS");
+		drawString(6, 5, fastMode ? "Speed mode: FAST" : "Speed mode: NORMAL");
+		drawString(6, 7, "T - Toggle Speed");
+		drawString(6, 8, "B - Back");
+
+		drawString(6, 10, "Press B to go back");
+
+		renderBuffer();
+
+		if (getIfBasicKeyIsCurrentlyDown('T'))
+		{
+			fastMode = !fastMode;
+			Sleep(150);
+		}
+		if (getIfBasicKeyIsCurrentlyDown('B'))
+			break;
+
+		Sleep(10);
+	}
+}
 
 
 
@@ -331,62 +430,107 @@ int main(int argc, char** argv)
 {
 	setupCustomConsole();
 	srand((unsigned int)time(NULL));
+
+	bool fastMode = false;
 	LevelId chosenLevel = ParseLevel(argc, argv);
 
 	while (true)
 	{
-		GameState* game = new GameState;
-		ResetGame(*game, chosenLevel);
+		MenuChoice menuChoice = ShowMainMenu(fastMode);
 
-		while (!game->gameOver)
+		if (menuChoice == MenuChoice::Quit)
 		{
-			TickInput input = ReadInput();
-
-			if (input.quit)
-			{
-				delete game;
-				deleteCustomConsole();
-				return 0;
-			}
-
-			UpdateGame(input, *game);
-			RenderGame(*game);
-
-			// controls how fast each tick runs
-			int speed = 150 - game->score * 5;
-			if (speed < 60) speed = 60;
-			Sleep(speed);
+			deleteCustomConsole();
+			return 0;
 		}
 
-		std::string highscoreFile = GetHighScoreFilename(chosenLevel);
-
-		int oldHighScore = LoadHighScore(highscoreFile);
-		int finalHighScore = oldHighScore;
-
-		if (game->score > oldHighScore)
+		if (menuChoice == MenuChoice::HighScores)
 		{
-			SaveHighScore(highscoreFile, game->score);
-			finalHighScore = game->score;
-
+			ShowHighScoreScreen();
+			continue;
+		}
+		
+		if (menuChoice == MenuChoice::Settings)
+		{
+			ShowSettingsScreen(fastMode);
+			continue;
 		}
 
-		ShowGameOverScreen(*game, finalHighScore);
+		if (menuChoice == MenuChoice::Level1) chosenLevel = LevelId::L1;
+		if (menuChoice == MenuChoice::Level2) chosenLevel = LevelId::L2;
+		if (menuChoice == MenuChoice::Level3) chosenLevel = LevelId::L3;
+
 
 		while (true)
 		{
-			if (getIfEscKeyIsCurrentlyDown()) 
-			{ 
-				delete game;
-				deleteCustomConsole(); 
-				return 0; 
-			}
-			if (getIfBasicKeyIsCurrentlyDown('R'))
+			GameState* game = new GameState;
+			ResetGame(*game, chosenLevel);
+
+			while (!game->gameOver)
 			{
-				delete game;
-				break;
+				TickInput input = ReadInput();
+
+				if (input.quit)
+				{
+					delete game;
+					deleteCustomConsole();
+					return 0;
+				}
+
+				UpdateGame(input, *game);
+				RenderGame(*game);
+
+				// controls how fast each tick runs
+				int basedSpeed = fastMode ? 100 : 150;
+				int speed = 150 - game->score * 5;
+				if (speed < 60) speed = 60;
+
+				Sleep(speed);
 			}
-			
-			Sleep(10);
+
+			std::string highscoreFile = GetHighScoreFilename(chosenLevel);
+
+			int oldHighScore = LoadHighScore(highscoreFile);
+			int finalHighScore = oldHighScore;
+
+			if (game->score > oldHighScore)
+			{
+				SaveHighScore(highscoreFile, game->score);
+				finalHighScore = game->score;
+
+			}
+
+			ShowGameOverScreen(*game, finalHighScore);
+
+			bool goToMenu = false;
+
+			while (true)
+			{
+				if (getIfEscKeyIsCurrentlyDown())
+				{
+					delete game;
+					deleteCustomConsole();
+					return 0;
+				}
+
+				if (getIfBasicKeyIsCurrentlyDown('M'))
+				{
+					delete game;
+					goToMenu = true;
+					break;
+				}
+
+				if (getIfBasicKeyIsCurrentlyDown('R'))
+				{
+					delete game;
+					break;
+				}
+
+				Sleep(10);
+			}
+
+			if (goToMenu)
+				break;
 		}
 	}
 }
