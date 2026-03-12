@@ -285,16 +285,17 @@ static void RenderGame(const GameState& game)
 {
 	//RENDER AREA:
 
-			// erase previous frame 
+	// erase previous frame 
 	clearBuffer();
 
-	// walls
+	// walls, top and bottom walls
 	for (int x = 0; x < game.width; x++)
 	{
 		drawTile(x, 0, '#');
 		drawTile(x, game.height - 1, '#');
 	}
 
+	// walls, side walls
 	for (int y = 0; y < game.height; y++)
 	{
 		drawTile(0, y, '#');
