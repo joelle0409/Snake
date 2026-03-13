@@ -45,9 +45,7 @@ enum class MenuChoice
 
 struct GameState
 {
-	// vector as a dynamic list, a list of Pos values for both Snake and walls, store many positions.
-	// the snake is a multiple body parts, with positions.
-	// same goes for the walls.
+	// stores the whole game, snake body, walls, dir, food, score, game over, level size, loaded level data
 
 	std::vector<Pos> snake;
 	std::vector<Pos> walls;
@@ -97,7 +95,9 @@ static bool IsWall(const GameState& game, int x, int y)
 
 static void LoadLevel(GameState& game, const std::string& filename)
 {
-	// reads map from text file. 
+	// reads map from text file line by line
+	// sets game.wdth and game.height
+	// converts # tile int positions stored in gamel.walls
 
 	game.level.clear();
 	game.walls.clear();
@@ -129,6 +129,8 @@ static void LoadLevel(GameState& game, const std::string& filename)
 
 static std::string GetLevelFilename(LevelId level)
 {
+	// converts level enums into a text file
+
 	if (level == LevelId::L1) return "level1.txt";
 	if (level == LevelId::L2) return "level2.txt";
 	if (level == LevelId::L3) return "level3.txt";
@@ -139,6 +141,8 @@ static std::string GetLevelFilename(LevelId level)
 
 static bool IsOnSnake(const GameState& game, int x, int y)
 {
+	// used for self collision detection
+
 	for (const Pos& p : game.snake)
 	{
 		if (p.x == x && p.y == y) return true;
@@ -149,6 +153,7 @@ static bool IsOnSnake(const GameState& game, int x, int y)
 
 static void RespawnFood(GameState& game)
 {
+	// picking random coordinates for the food until it finds a valid spot where there is no snake or wall
 	while (true)
 	{
 		game.food.x = rand() % game.width;
@@ -182,7 +187,7 @@ static TickInput ReadInput()
 {  
 	//INPUT: 
 
-			// WASD buttons
+			// WASD buttons, arrow keys, ESC, R
 			// Information gets stored in TickInput input; allowing the game to know what the player wants to do.
 			// Tick: one cycle of the game loop, one game step.
 			// The snake will move once every loop, then moves one tile per tick
@@ -204,6 +209,8 @@ static TickInput ReadInput()
 
 static void ResetGame(GameState& game, LevelId chosenLevel)
 {
+	// resets snake to startinf size and position, resets score and game over state, loads the selected level file, spawns food.
+
 	game.snake.clear();
 	game.snake.push_back({ 10,10 });
 	game.snake.push_back({ 9,10 });
@@ -329,6 +336,8 @@ static void RenderGame(const GameState& game)
 
 static void ShowGameOverScreen(const GameState& game, int highScore)
 {
+	// Positioned strings with drawString
+
 	clearBuffer();
 	drawString(10, 16, (std::string("Snake - Score: ") + std::to_string(game.score)).c_str());
 	drawString(10, 17, (std::string("High score: ") + std::to_string(highScore)).c_str());
@@ -343,6 +352,9 @@ static void ShowGameOverScreen(const GameState& game, int highScore)
 
 static MenuChoice ShowMainMenu(bool fastMode)
 {
+	// Positioned strings with drawString
+	// Player presses a chosen key
+
 	while (true)
 	{
 		clearBuffer();
@@ -373,6 +385,8 @@ static MenuChoice ShowMainMenu(bool fastMode)
 
 static void ShowHighScoreScreen()
 {
+	// loads and displays the saved highscore for all three levels. it stays open until player presses B
+
 	int hs1 = LoadHighScore(GetHighScoreFilename(LevelId::L1));
 	int hs2 = LoadHighScore(GetHighScoreFilename(LevelId::L2));
 	int hs3 = LoadHighScore(GetHighScoreFilename(LevelId::L3));
@@ -399,6 +413,8 @@ static void ShowHighScoreScreen()
 
 static void ShowSettingsScreen(bool& fastMode)
 {
+	//Displays setting screen. toggle the speed with T. 
+
 	while (true)
 	{
 		clearBuffer();
@@ -429,15 +445,17 @@ static void ShowSettingsScreen(bool& fastMode)
 
 int main(int argc, char** argv)
 {
+	// controls the whole program
+
 	setupCustomConsole();
 	srand((unsigned int)time(NULL));
 
 	bool fastMode = false;
 	LevelId chosenLevel = ParseLevel(argc, argv);
 
-	while (true)
+	while (true) // outergame loop, keeps the whole program alive: menu, play game, return menu, play again, quit
 	{
-		MenuChoice menuChoice = ShowMainMenu(fastMode);
+		MenuChoice menuChoice = ShowMainMenu(fastMode); // wait until player chooses
 
 		if (menuChoice == MenuChoice::Quit)
 		{
@@ -462,12 +480,12 @@ int main(int argc, char** argv)
 		if (menuChoice == MenuChoice::Level3) chosenLevel = LevelId::L3;
 
 
-		while (true)
+		while (true) // inner game loop, controls one selected level session. start lvl, die, rsrt lvl, go back to main menu
 		{
 			GameState* game = new GameState;
 			ResetGame(*game, chosenLevel);
 
-			while (!game->gameOver)
+			while (!game->gameOver) // loop runs while snake is still alive. each pass through this loop is one game tick
 			{
 				TickInput input = ReadInput();
 
@@ -481,7 +499,7 @@ int main(int argc, char** argv)
 				UpdateGame(input, *game);
 				RenderGame(*game);
 
-				// controls how fast each tick runs
+				// controls how fast each tick runs, game is faster when score increases  
 				int basedSpeed = fastMode ? 100 : 150;
 				int speed = 150 - game->score * 5;
 				if (speed < 60) speed = 60;
@@ -489,23 +507,23 @@ int main(int argc, char** argv)
 				Sleep(speed);
 			}
 
+			// get correct hs file for chosenlevel, load hs, assume final hs is the old one first
 			std::string highscoreFile = GetHighScoreFilename(chosenLevel);
-
 			int oldHighScore = LoadHighScore(highscoreFile);
 			int finalHighScore = oldHighScore;
 
 			if (game->score > oldHighScore)
 			{
-				SaveHighScore(highscoreFile, game->score);
+				SaveHighScore(highscoreFile, game->score); // save new score, update final hs
 				finalHighScore = game->score;
 
 			}
 
-			ShowGameOverScreen(*game, finalHighScore);
+			ShowGameOverScreen(*game, finalHighScore); // score, hs, restart option, menu option, exit option
 
 			bool goToMenu = false;
 
-			while (true)
+			while (true) 
 			{
 				if (getIfEscKeyIsCurrentlyDown())
 				{
