@@ -253,7 +253,7 @@ static void UpdateGame(const TickInput& input, GameState& game)
 	}
 
 	// check if the snake had taken the food 
-	bool ateFood = (newHead.x == game.food.x && newHead.y == game.food.y);
+	bool ateFood = (newHead.x == game.food.x && newHead.y == game.food.y); // if both match, then ateFood = true
 
 	if (!game.gameOver)
 	{
@@ -267,19 +267,19 @@ static void UpdateGame(const TickInput& input, GameState& game)
 		}
 	}
 
-	if (!game.gameOver)
+	if (!game.gameOver) // continues when game is not over
 	{
 		// GROW! and gain score.
 		if (ateFood)
 		{
 			game.score++;
 
-			game.snake.insert(game.snake.begin(), newHead);
+			game.snake.insert(game.snake.begin(), newHead); // add new head at the front snake vector
 			RespawnFood(game);
 		}
 		else
 		{
-			// add new head, remove tail, snake moves forward.
+			// add new head, remove tail, snake moves forward, remove head at the back. stays same length
 			game.snake.insert(game.snake.begin(), newHead);
 			game.snake.pop_back();
 		}
